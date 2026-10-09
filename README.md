@@ -29,6 +29,18 @@ Script cài Icarus Verilog 12.0 từ gói Debian được xác minh chữ ký/ha
 
 Nếu máy đã có `iverilog`, `vvp` và Python `cryptography`, chạy `python3 tests/run_checks.py`. Runner tự chọn thư mục repository để hai tệp HEX được tìm đúng, tạo build tạm ngoài checkout và trả mã lỗi khác 0 khi compile, so sánh hoặc timeout thất bại. RTL biên dịch được ở chế độ Verilog-2005; testbench dùng SystemVerilog.
 
+### Testbench IEEE/CAVS của người dùng
+
+[tests/tb_aes_xts_top.v](tests/tb_aes_xts_top.v) giữ nguyên các vector IEEE 1619 và CAVS ban đầu, sửa chuỗi `$display` và đổi thứ tự finalize cho GHASH x2. Khi còn khối lẻ, phải gửi finalize trước khi chờ `pipeline_idle`: length block sẽ hoàn tất cặp đang chờ. Testbench còn thêm timeout, kiểm tra output ổn định khi stall và GMAC 1/2/3 khối với tag tham chiếu độc lập.
+
+```bash
+bash scripts/run_user_tb.sh
+```
+
+Kết quả: **204 PASSED, 0 FAILED**, gồm 96 khối mã hóa + 96 khối giải mã, BIST, GMAC 0/1/2/3 khối, DM-AEAD, trạng thái khóa và tag đúng/sai. Có 61 chu kỳ output bị stall được kiểm tra. Các vector XTS được đối chiếu độc lập bằng OpenSSL; tag GMAC bổ sung được tính bằng `cryptography.AESGCM` với plaintext rỗng và AAD tương ứng. Đây là kiểm tra chức năng, không phải chứng nhận bảo mật. Runner trả mã lỗi khác 0 nếu compile hoặc test thất bại; thay đổi có chủ đích một expected ciphertext đã xác nhận đường báo lỗi hoạt động.
+
+Với ModelSim/Questa, compile các tệp RTL ở thư mục gốc và `tests/tb_aes_xts_top.v`, chọn top `tb_aes_xts_top`, chạy `run -all` từ thư mục chứa `aes_sbox.hex` và `aes_inv_sbox.hex`. Đã chạy bằng Icarus; chưa chạy ModelSim/Questa trong môi trường này.
+
 ## Kiểm chứng
 
 28 nhóm kiểm tra:
