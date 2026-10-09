@@ -1,4 +1,6 @@
-# Đánh giá Parallel GHASH x2 + bộ đệm hai phần tử
+# Đánh giá baseline trước khi chuyển sang GHASH x2
+
+**Tài liệu lịch sử tại commit `9eebeb2`.** Các mô tả “hiện tại”, “chưa triển khai” bên dưới nói về baseline lúc đánh giá. RTL mới đã triển khai GHASH x2; xem [hướng dẫn hiện tại](ghash-x2.vi.md).
 
 Phạm vi: đọc toàn bộ 7 tệp Verilog và 2 ROM HEX người dùng cung cấp; giữ nguyên RTL gốc, bổ sung mô phỏng và đề xuất thiết kế. Chưa triển khai `gf_mult_128`, GHASH x2 hoặc skid buffer mới. Đây là đánh giá kiến trúc, chưa phải kết quả tổng hợp FPGA.
 
