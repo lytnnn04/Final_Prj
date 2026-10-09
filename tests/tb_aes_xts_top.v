@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // Testbench người dùng, cập nhật cho GHASH x2 + auth_pair_buffer.
-// Chạy từ thư mục repository để $readmemh tìm được hai ROM S-box.
+// RTL S-box là logic tổ hợp; mô phỏng không cần nạp tệp HEX.
 module tb_aes_xts_top();
     localparam integer TIMEOUT_CYCLES = 2000;
     localparam integer XTS_BLOCKS = 96;

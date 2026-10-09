@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-// Stage sinh khóa con dùng 2 M20K dual-port cho SubWord
+// Stage sinh khóa con: 4 S-box logic, giữ hai bước DFF căn chỉnh round key
 module aes_key_expand_round_sync (
     input  wire         clk,
     input  wire         en,
@@ -13,14 +13,14 @@ module aes_key_expand_round_sync (
     reg  [31:0] sub_out_pipe;
     reg  [127:0] key_delay_1, key_delay_2;
 
-    aes_sbox_m20k_dp u_key_sbox_0 (
+    aes_sbox_pair_sync u_key_sbox_0 (
         .clk(clk), .en(en),
-        .addr_a(rot_in[31:24]), .addr_b(rot_in[23:16]),
+        .data_a(rot_in[31:24]), .data_b(rot_in[23:16]),
         .q_a(sub_out[31:24]),   .q_b(sub_out[23:16])
     );
-    aes_sbox_m20k_dp u_key_sbox_1 (
+    aes_sbox_pair_sync u_key_sbox_1 (
         .clk(clk), .en(en),
-        .addr_a(rot_in[15:8]),  .addr_b(rot_in[7:0]),
+        .data_a(rot_in[15:8]),  .data_b(rot_in[7:0]),
         .q_a(sub_out[15:8]),    .q_b(sub_out[7:0])
     );
 

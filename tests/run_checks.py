@@ -70,10 +70,52 @@ def math_checks():
         y, x1, x2, h = (rng.getrandbits(128) for _ in range(4))
         assert mul(x1, h) == poly_mul(x1, h)
         assert mul(mul(y ^ x1, h) ^ x2, h) == mul(y ^ x1, mul(h, h)) ^ mul(x2, h)
-    s = [int(x,16) for x in (ROOT/'aes_sbox.hex').read_text().split()]
-    inv = [int(x,16) for x in (ROOT/'aes_inv_sbox.hex').read_text().split()]
+    s = [int(x,16) for x in (ROOT/'tests/vectors/aes_sbox.hex').read_text().split()]
+    inv = [int(x,16) for x in (ROOT/'tests/vectors/aes_inv_sbox.hex').read_text().split()]
     assert len(s) == len(inv) == 256 and all(inv[s[i]] == i for i in range(256))
     print('PASS math: 1000 independent multiplication + GHASH x2 identities; 256 S-box inverses')
+
+def sbox_checks():
+    # Published AES tables are test fixtures only; no table enters the RTL.
+    forward = [int(x,16) for x in (ROOT/'tests/vectors/aes_sbox.hex').read_text().split()]
+    inverse = [int(x,16) for x in (ROOT/'tests/vectors/aes_inv_sbox.hex').read_text().split()]
+    body = CLOCK + """
+reg en=0; reg [7:0] data=0,other=0;
+wire [7:0] sub,inv,roundtrip,pair_a,pair_b;
+wire [127:0] sub_state,inv_state;
+aes_sbox_comb sb(.data_in(data),.data_out(sub));
+aes_inv_sbox_comb isb(.data_in(data),.data_out(inv));
+aes_inv_sbox_comb back(.data_in(sub),.data_out(roundtrip));
+aes_sbox_pair_sync pair(clk,en,data,other,pair_a,pair_b);
+aes_sub_bytes_sync state_sb(clk,en,{16{data}},sub_state);
+aes_inv_sub_bytes_sync state_isb(clk,en,{16{data}},inv_state);
+initial begin
+ repeat(3) @(negedge clk); rst_n=1;
+"""
+    for i in range(256):
+        expected_state = int.from_bytes(bytes([forward[i]])*16,'big')
+        expected_inv_state = int.from_bytes(bytes([inverse[i]])*16,'big')
+        body += f"""
+@(negedge clk); en=1; data=8'h{i:02x}; other=8'h{255-i:02x}; #1;
+if(sub !== 8'h{forward[i]:02x} || inv !== 8'h{inverse[i]:02x} || roundtrip !== data)
+ $fatal(1,"combinational S-box vector {i}");
+"""
+        if i:
+            body += f'''if(pair_a !== 8'h{forward[i-1]:02x}) $fatal(1,"S-box output changed before clock");\n'''
+        body += f"""
+@(posedge clk); #1;
+if(pair_a !== 8'h{forward[i]:02x} || pair_b !== 8'h{forward[255-i]:02x} ||
+ sub_state !== {lit(expected_state)} || inv_state !== {lit(expected_inv_state)})
+ $fatal(1,"registered SubBytes vector {i}");
+@(negedge clk); en=0; data=~data; other=~other;
+@(posedge clk); #1;
+if(pair_a !== 8'h{forward[i]:02x} || pair_b !== 8'h{forward[255-i]:02x} ||
+ sub_state !== {lit(expected_state)} || inv_state !== {lit(expected_inv_state)})
+ $fatal(1,"SubBytes changed with en=0, vector {i}");
+"""
+    body += '$display("PASS sbox: all 256 forward/inverse inputs, composition, pair/SubBytes registers and clock-enable hold"); $finish; end\n'
+    run('sbox',body)
+
 
 def setup_checks():
     key=bytes.fromhex('2b7e151628aed2a6abf7158809cf4f3c')
@@ -353,6 +395,7 @@ checking=0;
 
 if __name__=='__main__':
     math_checks()
+    sbox_checks()
     setup_checks()
     multiplier_checks()
     ghash_checks()
@@ -364,4 +407,4 @@ if __name__=='__main__':
     for direction in (0,1):
         top_checks(64,direction,1,stalls=False)
     lifecycle_checks()
-    print('All 28 check groups passed.')
+    print('All 29 check groups passed.')

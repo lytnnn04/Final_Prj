@@ -26,7 +26,7 @@ Các tệp nên đọc theo thứ tự:
 3. `auth_pair_buffer.v`: gom cặp, giữ dữ liệu khi downstream dừng.
 4. `aes_xts_top_module.v`: FSM setup và kết nối AAD/ciphertext/finalize.
 
-AES round, pipeline, iterative AES engine và ROM S-box giữ nguyên. FSM setup **hệ thống** nằm trong top; `aes_setup_engine.v` chỉ thực hiện các phép AES iterative được FSM gọi.
+Các phép AES round giữ nguyên; S-box hiện đã được thay bằng logic tổ hợp + DFF giữ latency, xem [S-box logic](aes-sbox-logic.vi.md). FSM setup **hệ thống** nằm trong top; `aes_setup_engine.v` chỉ thực hiện các phép AES iterative được FSM gọi.
 
 ## 2. Bộ nhân không RAM
 
@@ -116,4 +116,4 @@ Giữ nguyên CSR map. Khi ghi `SEC_CTRL`, phần mềm phải giữ đúng bit 
 
 `tests/run_checks.py` kiểm tra phép nhân bằng mô hình đa thức độc lập, recurrence GHASH tuần tự, bộ đệm qua scoreboard, XTS bằng cryptography/OpenSSL và tag bằng AES+GHASH phần mềm. Có test duy trì một khối mỗi chu kỳ ở cả input/output, test thay LBA giữ H², thay mode/key tạo H² mới, clear-key giữa pipeline và khởi động lại.
 
-Chưa có FPGA part/clock constraint/Quartus project, nên chưa xác nhận ALM, M20K, fmax hoặc timing closure. S-box AES vẫn dùng ROM M20K. Các vấn đề giao thức đã nêu ở [đánh giá baseline](parallel-ghash-review.vi.md), như nonce theo LBA và trả plaintext trước khi xác thực tag, không được giải quyết bởi phép thay GHASH này.
+Chưa có FPGA part/clock constraint/Quartus project, nên chưa xác nhận ALM, M20K, fmax hoặc timing closure. S-box AES cũng đã chuyển sang logic tổ hợp; Yosys kiểm tra không còn inferred memory. Các vấn đề giao thức đã nêu ở [đánh giá baseline](parallel-ghash-review.vi.md), như nonce theo LBA và trả plaintext trước khi xác thực tag, không được giải quyết bởi phép thay GHASH này.

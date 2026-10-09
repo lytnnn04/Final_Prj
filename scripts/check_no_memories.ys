@@ -1,0 +1,9 @@
+# Run before any memory_map pass: never hide a ROM by mapping it after inference.
+read_verilog *.v
+hierarchy -check -top aes_xts_top_module
+proc
+opt
+memory_collect
+check -assert
+select -assert-none t:$mem* t:$dlatch* t:$adlatch*
+stat
