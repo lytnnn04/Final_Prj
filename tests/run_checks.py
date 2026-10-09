@@ -76,11 +76,12 @@ def math_checks():
     print('PASS math: 1000 independent multiplication + GHASH x2 identities; 256 S-box inverses')
 
 def sbox_checks():
-    # Published AES tables are test fixtures only; no table enters the RTL.
+    # Independent fixture files check every entry in the RTL case tables.
     forward = [int(x,16) for x in (ROOT/'tests/vectors/aes_sbox.hex').read_text().split()]
     inverse = [int(x,16) for x in (ROOT/'tests/vectors/aes_inv_sbox.hex').read_text().split()]
     body = CLOCK + """
-reg en=0; reg [7:0] data=0,other=0;
+// Start away from vector 00 so the first drive triggers Verilog always @(*).
+reg en=0; reg [7:0] data=8'hff,other=0;
 wire [7:0] sub,inv,roundtrip,pair_a,pair_b;
 wire [127:0] sub_state,inv_state;
 aes_sbox_comb sb(.data_in(data),.data_out(sub));

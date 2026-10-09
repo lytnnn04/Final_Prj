@@ -1,19 +1,19 @@
 # AES-XTS + Parallel GHASH x2
 
-RTL đã chuyển sang **hai bộ nhân GF(2¹²⁸) tổ hợp và bộ đệm hai phần tử bằng DFF**. Bảng tra GHASH và `auth_fifo4` đã được loại bỏ. S-box và inverse S-box AES cũng đã chuyển sang logic tổ hợp, không còn ROM/M20K hoặc `$readmemh` trong RTL.
+RTL đã chuyển sang **hai bộ nhân GF(2¹²⁸) tổ hợp và bộ đệm hai phần tử bằng DFF**. Bảng tra GHASH và `auth_fifo4` đã được loại bỏ. S-box và inverse S-box AES dùng bảng hằng `case` tổ hợp theo file mẫu của người dùng; không còn phép tính nghịch đảo, mảng RAM hoặc `$readmemh` trong RTL. Thuộc tính Quartus yêu cầu không tự nhận diện bảng thành ROM.
 
 ## Đọc mã nguồn
 
 | Tệp | Vai trò |
 |---|---|
-| `aes_sbox_logic.v` | S-box/inverse tính bằng nghịch đảo GF(2⁸) + affine, không bảng tra. |
+| `aes_sbox_logic.v` | S-box/inverse tra bảng hằng 256 mục bằng `always @(*)` + `case`. |
 | `aes_sub_bytes.v` | DFF ở ranh giới SubBytes/SubWord, giữ latency và clock-enable. |
 | `gf_mult_128.v` | Mạng AND/XOR, cây XOR cân bằng và reduction cố định; không clock/RAM. |
 | `ghash_core.v` | Hai multiplier song song, thanh ghi H/H²/Y; xử lý cặp và singleton. |
 | `auth_pair_buffer.v` | Gom cặp 128-bit, metadata `last`, backpressure và pop/push đồng thời. |
 | `aes_xts_top_module.v` | Setup H², chọn AAD/ciphertext/length, handshake và finalize. |
 
-[S-box logic và kiểm tra không có bộ nhớ](docs/aes-sbox-logic.vi.md) giải thích phép biến đổi đại số và cách giữ pipeline AES.
+[S-box logic và kiểm tra không có bộ nhớ](docs/aes-sbox-logic.vi.md) giải thích bảng `case` theo mẫu người dùng và cách giữ pipeline AES.
 
 [Hướng dẫn kiến trúc và chu kỳ hoạt động](docs/ghash-x2.vi.md) giải thích từng khối và các điều kiện điều khiển. [Báo cáo baseline](docs/parallel-ghash-review.vi.md) được giữ làm tài liệu đối chiếu với commit `9eebeb2`.
 
@@ -67,4 +67,4 @@ Với ModelSim/Questa, compile các tệp RTL ở thư mục gốc và `tests/tb
 bash scripts/check_no_memories.sh
 ```
 
-Yosys xác nhận hierarchy top có **0 memories, 0 memory bits và không latch**, trước khi map memory sang logic. Script báo lỗi nếu xuất hiện memory/latch. Rcon trong iterative setup cũng đã được đổi từ bảng hằng số sang `xtime`. Chưa chạy Intel Quartus/Fitter; các con số generic cell của Yosys không phải số ALM.
+Với `proc -norom` giữ bảng `case` ở dạng mux/logic, Yosys xác nhận hierarchy top có **0 memories, 0 memory bits và không latch**. Không chạy `memory_map`. Script báo lỗi nếu xuất hiện memory/latch. Rcon trong iterative setup cũng đã được đổi từ bảng hằng số sang `xtime`. Chưa chạy Intel Quartus/Fitter; các con số generic cell của Yosys không phải số ALM.

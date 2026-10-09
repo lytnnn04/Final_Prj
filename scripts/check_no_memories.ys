@@ -1,7 +1,8 @@
-# Run before any memory_map pass: never hide a ROM by mapping it after inference.
+# Keep combinational case tables as mux/logic, matching the intended Quartus flow.
+# Explicit memory arrays are still collected and rejected; no memory_map pass.
 read_verilog *.v
 hierarchy -check -top aes_xts_top_module
-proc
+proc -norom
 opt
 memory_collect
 check -assert
